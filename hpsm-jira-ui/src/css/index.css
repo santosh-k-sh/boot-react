@@ -1,0 +1,40 @@
+.app p {
+  color: blue;
+}
+
+.linkStyle {
+  float: left;
+  display: block;
+  color: #f2f2f2;
+  text-align: center;
+  /*padding: 5px;*/
+  text-decoration: none !important;
+  font-size: 17px;
+  margin-right: 12px;
+  margin-top: 12px;
+  margin-left: 12px;
+}
+
+.btnMargin {
+  margin-right: 1px;
+  margin-left: 1px;
+}
+
+.container {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: 20px;
+  margin-left: 20px;
+}
+
+h2 {
+  font-size: 2.4em;
+  font-weight: bold;
+  margin: 4px 0 45px;
+  padding: 0;
+  color: #2266bb;
+}
+
+.form-control.danger{
+  border: 1px solid #d9534f !important;
+}
