@@ -13,6 +13,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by Santosh.Sharma on 9/26/2018.
@@ -53,6 +55,13 @@ public class HPSMUtility {
             description.append(descType.getValue()+"\n");
         }
 
+        StringBuffer problemId = new StringBuffer();
+        Pattern p = Pattern.compile("-?\\d+");
+        Matcher m = p.matcher(problemInstanceType.getID().getValue().getValue());
+        while (m.find()) {
+            problemId.append(m.group());
+        }
+        hpsmProblem.setProblemId(Long.parseLong(problemId.toString()));
         hpsmProblem.setProblemNo(problemInstanceType.getID().getValue().getValue());
         hpsmProblem.setProblemDescription(description.toString());
         hpsmProblem.setProblemTitle(problemInstanceType.getTitle().getValue().getValue());

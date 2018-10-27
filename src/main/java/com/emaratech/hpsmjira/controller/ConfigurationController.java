@@ -1,8 +1,6 @@
 package com.emaratech.hpsmjira.controller;
 
-import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.emaratech.hp.schemas.sm._7.RetrieveNEW9330035ProblemKeysListResponse;
-import com.emaratech.hp.schemas.sm._7.RetrieveProblemKeysListResponse;
 import com.emaratech.hpsmjira.model.*;
 import com.emaratech.hpsmjira.model.Project;
 import com.emaratech.hpsmjira.service.HPSMService;
@@ -12,25 +10,19 @@ import com.emaratech.hpsmjira.utility.LookupProvider;
 import com.emaratech.hpsmjira.model.HPSMCredential;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.ui.Model;
-import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import sun.net.www.protocol.http.AuthCacheImpl;
 import sun.net.www.protocol.http.AuthCacheValue;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import org.springframework.web.bind.annotation.*;
 
 /**
  * Created by Santosh.Sharma on 9/27/2018.
@@ -38,6 +30,9 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class ConfigurationController {
+
+    Logger logger = LoggerFactory.getLogger(ConfigurationController.class);
+
 
     @Autowired
     JIRAService jiraService;
@@ -110,7 +105,7 @@ public class ConfigurationController {
         }
 
         try {
-            System.out.println("calling hpsm..");
+            logger.info("calling hpsm..");
 
             Map<String, RetrieveNEW9330035ProblemKeysListResponse> retrieveProblemKeysListResponse = hpsmService.auth(user.getHpsmUser().getHpsmURL(), user.getHpsmUser().getHpsmUserName(),user.getHpsmUser().getHpsmPassword());
 
@@ -144,7 +139,7 @@ public class ConfigurationController {
             userService.getUser().setHpsmUser(user.getHpsmUser());
         }
 
-        System.out.println("User Authenticated : "+user.getHpsmUser().isAuthenticated());
+        logger.info("User Authenticated : "+user.getHpsmUser().isAuthenticated());
         return user.getHpsmUser().isAuthenticated();
     }
 
@@ -184,7 +179,7 @@ public class ConfigurationController {
             userService.getUser().setUserAuthenticated(true);
         }
 
-        System.out.println("JIRA User Authenticated : "+userService.getUser().getJiraUser().isAuthenticated());
+        logger.info("JIRA User Authenticated : "+userService.getUser().getJiraUser().isAuthenticated());
         return userService.getUser().getJiraUser().isAuthenticated();
     }
 
@@ -273,7 +268,7 @@ public class ConfigurationController {
         /*loadHPSMProblemToProcess();
 
         if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().size() > 0) {
-            System.out.println("Problems to migrate : " + userService.getProblemToMigrate().entrySet().size());
+            logger.info("Problems to migrate : " + userService.getProblemToMigrate().entrySet().size());
             jiraService.createJIRATicket();
         }*/
 
@@ -282,12 +277,8 @@ public class ConfigurationController {
             initiateJob(Long.parseLong(selectedJobHour));
         }
 
-        if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().entrySet().size() > 0) {
-            for(Map.Entry<String, List<HPSMProblem>> hpsmProblemDetail : userService.getProblemToMigrate().entrySet()) {
-                for(HPSMProblem hpsmProblem : hpsmProblemDetail.getValue()) {
-                    hpsmProblems.add(hpsmProblem);
-                }
-            }
+        if(hpsmService.getNonAvailableHPSMProblemInJIRA() != null && hpsmService.getNonAvailableHPSMProblemInJIRA().size() > 0) {
+            hpsmService.saveHPSMProblem(hpsmService.getNonAvailableHPSMProblemInJIRA());
         }
 
         return hpsmProblems;
@@ -316,7 +307,7 @@ public class ConfigurationController {
         if(userService != null && /*userService.getUser() != null && userService.getUser().isUserAuthenticated() &&*/
                 hpsmService != null && hpsmService.getProblemManagementService() != null) {
             hpsmProblemMap.clear();
-            hpsmProblemMap = hpsmService.loadProblemDetail(projectKey, retrieveProblemKeysListResponse);
+            hpsmProblemMap = hpsmService.loadHPSMProblemOfNonAvailableJIRAItem(projectKey, retrieveProblemKeysListResponse);
 
             if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().entrySet().size() > 0) {
                 userService.getProblemToMigrate().putAll(hpsmProblemMap);
@@ -331,14 +322,14 @@ public class ConfigurationController {
         runnable = new Runnable() {
             @Override
             public void run() {
-                System.out.println("Job initiated at..."+ new Date());
+                logger.info("Job initiated at..."+ new Date());
                 if(userService.getUser().isUserAuthenticated()) {
                     loadHPSMProblemToProcess();
                 }
 
                 if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().size() > 0) {
-                    System.out.println("============================================================================");
-                    System.out.println("Problems to migrate : " + userService.getProblemToMigrate().entrySet().size());
+                    logger.info("============================================================================");
+                    logger.info("Problems to migrate : " + userService.getProblemToMigrate().entrySet().size());
                     jiraService.createJIRATicket();
                 }
 
@@ -346,9 +337,16 @@ public class ConfigurationController {
                 if(hpsmService.getClosableProblems() != null && hpsmService.getClosableProblems().size() > 0) {
                     hpsmService.closeProblem();
                 }
+
+                if(hpsmService.getNonAvailableHPSMProblemInJIRA() != null && hpsmService.getNonAvailableHPSMProblemInJIRA().size() > 0) {
+                    logger.info("Saving newly migrated HPSM Problem");
+                    hpsmService.saveHPSMProblem(hpsmService.getNonAvailableHPSMProblemInJIRA());
+                    hpsmService.getNonAvailableHPSMProblemInJIRA().clear();
+                }
+
             }
         };
-        future = executor.scheduleWithFixedDelay(runnable, 0, scheduleHourlyDelay, TimeUnit.HOURS);
+        future = executor.scheduleWithFixedDelay(runnable, scheduleHourlyDelay, scheduleHourlyDelay, TimeUnit.HOURS);
 
         try {
             Thread.sleep(20000l);
@@ -357,11 +355,16 @@ public class ConfigurationController {
         }
     }
 
-    public static void changeDelay(long scheduleHourlyDelay) {
+    public void changeDelay(long scheduleHourlyDelay) {
         boolean res = future.cancel(false);
-        System.out.println("Previous task canceled: " + res);
+        logger.info("Previous task canceled: " + res);
 
         future = executor.scheduleWithFixedDelay(runnable, 0, scheduleHourlyDelay, TimeUnit.HOURS);
+    }
+
+    @RequestMapping(value = "/processedProblems")
+    public List<HPSMProblem>  getProcessedProblems() {
+        return hpsmService.loadHPSMProblemList();
     }
 
 }

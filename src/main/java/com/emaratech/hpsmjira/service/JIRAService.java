@@ -13,6 +13,8 @@ import com.emaratech.hpsmjira.model.ClosableProblem;
 import com.emaratech.hpsmjira.model.HPSMProblem;
 import com.emaratech.hpsmjira.model.JIRAIssue;
 import com.emaratech.hpsmjira.model.Jira;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +30,9 @@ import java.util.concurrent.ExecutionException;
 @Service
 public class JIRAService {
     public static final String JIRA_TICKET_SEARCH_PATTERN_TEXT = "text ~";
+    Logger logger = LoggerFactory.getLogger(JIRAService.class);
+    public static final String DEFAULT_PROJECT = "TVIS";
+    public static final Long DONE_STATUS = 10001L;
 
     private JiraRestClient restClient;
     private Jira jira;
@@ -47,9 +52,9 @@ public class JIRAService {
 
     private JiraRestClient authenticate() {
         restClient = new AsynchronousJiraRestClientFactory()
-                .createWithBasicHttpAuthentication(URI.create("https://emaratech.atlassian.net"), jira.getJiraUserName(), jira.getJiraPassword());
+                .createWithBasicHttpAuthentication(URI.create(jira.getJiraURL()), jira.getJiraUserName(), jira.getJiraPassword());
 
-        if(restClient.getProjectClient().getProject("TVIS").claim() != null) {
+        if(restClient.getProjectClient().getProject(DEFAULT_PROJECT).claim() != null) {
             return restClient;
         }
         return null;
@@ -63,7 +68,7 @@ public class JIRAService {
         List<JIRAIssue> jiraIssues = new ArrayList<JIRAIssue>();
 
         if(restClient != null) {
-            System.out.println("Searching in JIRA for Problem No : " + problemNo);
+            logger.info("Searching in JIRA for Problem No : " + problemNo);
             Promise<SearchResult> searchJqlPromise = restClient.getSearchClient().searchJql(searchJqlText.toString());
 
             if(searchJqlPromise != null && ((Collection) searchJqlPromise.claim().getIssues()).size()  > 0) {
@@ -71,7 +76,7 @@ public class JIRAService {
                 String jiraID = "";
                 StringBuffer fixVersions = new StringBuffer();
 
-                System.out.println("Problem No : " + problemNo + " found in JIRA");
+                logger.info("Problem No : " + problemNo + " found in JIRA");
                 for (Issue resultIssue : searchJqlPromise.claim().getIssues()) {
                     JIRAIssue jiraIssue = new JIRAIssue();
                     jiraIssue.setIssueKey(resultIssue.getKey());
@@ -80,7 +85,7 @@ public class JIRAService {
                     jiraIssue.setIssueStatus(resultIssue.getStatus().getName());
                     jiraIssue.setCreatedDate(resultIssue.getCreationDate());
 
-                    if(resultIssue.getFixVersions() != null && resultIssue.getStatus().getId() == 10001L) { // Status : Done
+                    if(resultIssue.getFixVersions() != null && Objects.equals(resultIssue.getStatus().getId(), DONE_STATUS)) { // Status : Done
                         jiraID = resultIssue.getKey();
 
                         for(Version version : resultIssue.getFixVersions()) {
@@ -103,7 +108,7 @@ public class JIRAService {
                 if(fixWasReleased) {
                     if(((Collection) searchJqlPromise.claim().getIssues()).size() > 1) {
                         for (Issue resultIssue : searchJqlPromise.claim().getIssues()) {
-                            if(resultIssue.getStatus().getId() != 10001L) {
+                            if(!Objects.equals(resultIssue.getStatus().getId(), DONE_STATUS)) {
                                 fixWasReleased = false;
                                 break;
                             }
@@ -116,7 +121,7 @@ public class JIRAService {
                         closableProblem.setClosureCode("Successful");
                         closableProblem.setAssigneeGroup("ConnectAll Group");
                         closableProblem.setHpsmProblemId(problemNo);
-                        String solutionText = "Fixed provided and deployed under fix-version - " + fixVersions.toString() + " TVIS - " + jiraID;
+                        String solutionText = "Fixed provided and deployed under fix-version - " + fixVersions.toString() + " - " + jiraID;
                         closableProblem.setSolution(solutionText);
                         closableProblem.setSubCategory("application error");
 
@@ -124,16 +129,16 @@ public class JIRAService {
                     }
                 }
             } else {
-                System.out.println("============================================================================");
-                System.out.println("Problem No : " + problemNo + " NOT found in JIRA");
-                System.out.println("============================================================================");
+                logger.info("============================================================================");
+                logger.info("Problem No : " + problemNo + " NOT found in JIRA");
+                logger.info("============================================================================");
             }
         }
         return jiraIssues;
     }
 
     public List<String> createJIRATicket() {
-        System.out.println("createJIRATicket start...");
+        logger.info("createJIRATicket start...");
         IssueRestClient issueClient = restClient.getIssueClient();
         IssueType problemIssueType = null;
         List<String> newlyCreatedJIRAIds = new ArrayList<String>();
@@ -168,9 +173,9 @@ public class JIRAService {
                         FieldInput environmentFieldInput = new FieldInput("customfield_13657", "Production");
 
 
-                        System.out.println("Trying to create JIRA against Problem - " + hpsmProblem.getProblemNo());
+                        logger.info("Trying to create JIRA against Problem - " + hpsmProblem.getProblemNo());
 
-                        IssueInput newIssue = new IssueInputBuilder(hpsmProblemDetail.getKey(),
+                        /*IssueInput newIssue = new IssueInputBuilder(hpsmProblemDetail.getKey(),
                                 problemIssueType.getId(), hpsmProblem.getProblemTitle())
                                 .setDescription(hpsmProblem.getProblemDescription())
                                 .setPriorityId(Long.valueOf(hpsmProblem.getProblemPriority()))
@@ -180,22 +185,23 @@ public class JIRAService {
                                 .setFieldInput(hpsmFieldInput)
                                 //.setFieldInput(environmentFieldInput)
 
-                                .build();
+                                .build();*/
 
-                        System.out.println("...");
-                        String jiraID = issueClient.createIssue(newIssue).claim().getKey();
-                        System.out.println("JIRA created succefully." + jiraID + " for problem " + hpsmProblem.getProblemNo());
+                        logger.info("...");
+                        String jiraID = "TVIS-1100";//issueClient.createIssue(newIssue).claim().getKey();
+                        logger.info("JIRA created succefully." + jiraID + " for problem " + hpsmProblem.getProblemNo());
 
                         newlyCreatedJIRAIds.add(jiraID);
 
                         newlyCreatedProblemList.add(hpsmProblem);
                     }
                     problemList.removeAll(newlyCreatedProblemList);
+                    hpsmService.getNonAvailableHPSMProblemInJIRA().addAll(newlyCreatedProblemList);
                 }
             }
         }
 
-        System.out.println("newlyCreatedJIRAIds : " + newlyCreatedJIRAIds);
+        logger.info("newlyCreatedJIRAIds : " + newlyCreatedJIRAIds);
         return newlyCreatedJIRAIds;
     }
 

@@ -2,15 +2,20 @@ package com.emaratech.hpsmjira.service;
 
 import com.emaratech.hp.schemas.sm._7.*;
 import com.emaratech.hp.schemas.sm._7.common.StringType;
+import com.emaratech.hpsmjira.dao.HPSMProblemDao;
+import com.emaratech.hpsmjira.dao.HPSMProblemRepository;
 import com.emaratech.hpsmjira.model.ClosableProblem;
 import com.emaratech.hpsmjira.model.HPSMProblem;
 import com.emaratech.hpsmjira.model.JIRAIssue;
 import com.emaratech.hpsmjira.model.Project;
 import com.emaratech.hpsmjira.utility.HPSMUtility;
 import com.sun.org.apache.xpath.internal.operations.Bool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import javax.xml.bind.JAXBElement;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
@@ -25,6 +30,7 @@ import static com.emaratech.hpsmjira.utility.HPSMUtility.loadProblemDetails;
  */
 @Service
 public class HPSMService {
+    Logger logger = LoggerFactory.getLogger(HPSMService.class);
 
     @Autowired
     JIRAService jiraService;
@@ -32,12 +38,19 @@ public class HPSMService {
     @Autowired
     UserService userService;
 
+    /*@Autowired
+    HPSMProblemDao hpsmProblemDao;*/
+
+    @Autowired
+    HPSMProblemRepository repository;
+
     private Map<String, Boolean> problemServiceNameMap = new HashMap<String, Boolean>();
     private List<ClosableProblem> closableProblems = new ArrayList<ClosableProblem>();
 
     private ProblemManagement_Service problemManagementService;
     private ProblemManagement problemManagement;
     private String[] problemStatuses = {"Work In Progress", "Assign", "Categorize", "Accepted", "Pending", "Pending User", "Pending Vendor", "Resolved"};
+    List<HPSMProblem> nonAvailableHPSMProblemInJIRA = new ArrayList<HPSMProblem>();
 
     public void authenticate(String userName, String password) throws Exception {
         problemManagementService = new ProblemManagement_Service();
@@ -57,7 +70,7 @@ public class HPSMService {
         if(hpsmURL != null && hpsmURL.length() > 0) {
             hpsmURL = hpsmURL+"/ProblemManagement?wsdl";
             URL url = new URL(hpsmURL);
-            //url = new URL("http://localhost:8084/ProblemManagement?wsdl");
+            url = new URL("http://localhost:8084/ProblemManagement?wsdl");
             problemManagementService = new ProblemManagement_Service(url);
         } else {
             problemManagementService = new ProblemManagement_Service();
@@ -79,7 +92,7 @@ public class HPSMService {
         return retrieveProblemKeysListResponse;
     }
 
-    public Map<String, List<HPSMProblem>> loadProblemDetail(String projectKey, RetrieveNEW9330035ProblemKeysListResponse retrieveProblemKeysListResponse) {
+    public Map<String, List<HPSMProblem>> loadHPSMProblemOfNonAvailableJIRAItem(String projectKey, RetrieveNEW9330035ProblemKeysListResponse retrieveProblemKeysListResponse) {
         /* Reading Problem List */
         Map<String, List<HPSMProblem>> hpsmProblemMap = new HashMap<String, List<HPSMProblem>>();
         if(retrieveProblemKeysListResponse != null && retrieveProblemKeysListResponse.getMessage().equalsIgnoreCase("Success")) {
@@ -138,14 +151,14 @@ public class HPSMService {
                     if(retrieveProblemKeysListResponseMap.size() > 0) {
                         List<String> problems = new ArrayList<String>();
                         for (Map.Entry<String, RetrieveNEW9330035ProblemKeysListResponse> problemKeysListResponseEntry : retrieveProblemKeysListResponseMap.entrySet()) {
-                            System.out.println("Open Problems for service, " + problemKeysListResponseEntry.getKey() + " - " + problemKeysListResponseEntry.getValue().getKeys().size());
+                            logger.info("Open Problems for service, " + problemKeysListResponseEntry.getKey() + " - " + problemKeysListResponseEntry.getValue().getKeys().size());
 
                             for(NEW9330035ProblemKeysType problemKeysType : problemKeysListResponseEntry.getValue().getKeys()) {
                                 problems.add(problemKeysType.getID().getValue().getValue());
                             }
                         }
 
-                        System.out.println("Total Open Problems : " + problems.size());
+                        logger.info("Total Open Problems : " + problems.size());
 
                         for(String problem : problems) {
                             if(!problemServiceNameMap.entrySet().stream()
@@ -163,7 +176,7 @@ public class HPSMService {
             retrieveProblemKeysListResponseMap.put("Vision.BorderControl:TVIS",  getProblemIdResponse("Vision.BorderControl", "Categorize", 1L));
         }
 
-        System.out.println("retrieveProblemKeysListResponseMap : " + retrieveProblemKeysListResponseMap.size());
+        logger.info("retrieveProblemKeysListResponseMap : " + retrieveProblemKeysListResponseMap.size());
         return retrieveProblemKeysListResponseMap;
 
     }
@@ -190,10 +203,10 @@ public class HPSMService {
 
     public void closeProblem() {
         if(closableProblems != null && closableProblems.size() > 0) {
-            System.out.println("closableProblems : "+closableProblems);
+            logger.info("closableProblems : "+closableProblems);
 
             for(ClosableProblem closableProblem : closableProblems) {
-                System.out.println("Closing Problem No. "+closableProblem.getHpsmProblemId());
+                logger.info("Closing Problem No. "+closableProblem.getHpsmProblemId());
 
                 CloseNEW9330035ProblemRequest closeNEW9330035ProblemRequest = new CloseNEW9330035ProblemRequest();
                 NEW9330035ProblemModelType new9330035ProblemModelType = new NEW9330035ProblemModelType();
@@ -220,10 +233,24 @@ public class HPSMService {
                 problemManagement.closeNEW9330035Problem(closeNEW9330035ProblemRequest);
             }
 
-            System.out.println("Clearing closableProblems.");
+            logger.info("Clearing closableProblems.");
             closableProblems.clear();
 
         }
+    }
+
+    @Transactional
+    public void saveHPSMProblem(List<HPSMProblem> hpsmProblems) {
+        if(hpsmProblems != null && hpsmProblems.size() > 0) {
+            for (HPSMProblem hpsmProblem : hpsmProblems) {
+                //hpsmProblemDao.saveHPSMProblem(hpsmProblem);
+                repository.save(hpsmProblem);
+            }
+        }
+    }
+
+    public List<HPSMProblem> loadHPSMProblemList() {
+        return (List<HPSMProblem>) repository.findAll();
     }
 
     public ProblemManagement_Service getProblemManagementService() {
@@ -249,4 +276,13 @@ public class HPSMService {
     public void setClosableProblems(List<ClosableProblem> closableProblems) {
         this.closableProblems = closableProblems;
     }
+
+    public List<HPSMProblem> getNonAvailableHPSMProblemInJIRA() {
+        return nonAvailableHPSMProblemInJIRA;
+    }
+
+    public void setNonAvailableHPSMProblemInJIRA(List<HPSMProblem> nonAvailableHPSMProblemInJIRA) {
+        this.nonAvailableHPSMProblemInJIRA = nonAvailableHPSMProblemInJIRA;
+    }
+
 }

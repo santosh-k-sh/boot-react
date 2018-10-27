@@ -1,20 +1,41 @@
 package com.emaratech.hpsmjira.model;
 
+import javax.persistence.*;
+
 /**
  * Created by Santosh.Sharma on 9/27/2018.
  */
+
+@Entity
+@Table(name = "HPSM_PROBLEM")
 public class HPSMProblem {
+    @Id
+    @Column(name = "PROBLEM_ID")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long problemId;
+    @Column(name = "PROBLEM_NO")
     private String problemNo;
+    @Column(name = "PROBLEM_DESC")
     private String problemDescription;
+    @Column(name = "PROBLEM_ASSIGNEE")
     private String problemAssignee;
+    @Column(name = "PROBLEM_TITLE")
     private String problemTitle;
+    @Column(name = "PROBLEM_URGENCY")
     private String problemUrgency;
+    @Column(name = "PROBLEM_PRIORITY")
     private String problemPriority;
+    @Column(name = "AFFECTED_SERVICE")
     private String affectedService;
+    @Column(name = "PROBLEM_STATUS")
     private String problemStatus;
+    @Column(name = "SUB_CATEGORY")
     private String subCategory;
+    @Column(name = "PROBLEM_IMPACT")
     private String impact;
+    @Column(name = "PROBLEM_INCIDENT_COUNT")
     private String incidentCount;
+    @Column(name = "PROBLEM_KEY")
     private String projectKey;
 
 
@@ -112,5 +133,13 @@ public class HPSMProblem {
 
     public void setProjectKey(String projectKey) {
         this.projectKey = projectKey;
+    }
+
+    public Long getProblemId() {
+        return problemId;
+    }
+
+    public void setProblemId(Long problemId) {
+        this.problemId = problemId;
     }
 }

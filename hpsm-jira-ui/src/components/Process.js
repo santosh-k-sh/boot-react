@@ -1,8 +1,27 @@
 import React, {Component} from 'react';
 import {connect} from 'react-redux';
 import { PageHeader } from 'react-bootstrap';
+import axios from 'axios';
+
+import {updateCompletedProblems} from '../actions/index';
 
 class Process extends Component {
+    constructor(props, context) {
+        super(props, context);
+
+        this.state = {
+            problemsToMigrate: []
+        };
+    }
+
+    componentDidMount() {
+        axios.get('/processedProblems')
+            .then(res => {
+                this.setState({problemsToMigrate: res.data});
+                this.props.updateProblemLists(this.state.problemsToMigrate);
+            });
+    }
+
     render() {
         return(
             <div className="container">
@@ -43,12 +62,17 @@ class Process extends Component {
 
 function mapStateToProps(state) {
     return {
-        hpsmUserName: state.authReducer.hpsmUserName,
         problemsToMigrate: state.authReducer.problemsToMigrate,
         userAuthenticated: state.authReducer.userAuthenticated
     }
 }
 
-export default connect(mapStateToProps, null)(Process);
+function mapDispatchToProps(dispatch) {
+    return({
+        updateProblemLists: (problemList)=>{dispatch(updateCompletedProblems(problemList))}
+    })
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Process);
 
 //export default Process;
