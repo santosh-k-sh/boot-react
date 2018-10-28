@@ -66,7 +66,7 @@ public class HPSMService {
         Authenticator.setDefault(myAuth);
     }
 
-    public Map<String, RetrieveNEW9330035ProblemKeysListResponse> auth(String hpsmURL, String userName, String password) throws Exception {
+    public Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> auth(String hpsmURL, String userName, String password) throws Exception {
         if(hpsmURL != null && hpsmURL.length() > 0) {
             hpsmURL = hpsmURL+"/ProblemManagement?wsdl";
             URL url = new URL(hpsmURL);
@@ -88,13 +88,7 @@ public class HPSMService {
 
         Authenticator.setDefault(myAuth);
 
-        Map<String, RetrieveNEW9330035ProblemKeysListResponse> retrieveProblemKeysListResponse = retrieveProblemKeysList(problemManagement);
-
-        if(retrieveProblemKeysListResponse != null) {
-            for(Map.Entry<String, RetrieveNEW9330035ProblemKeysListResponse> entry:retrieveProblemKeysListResponse.entrySet()) {
-                logger.info("HPSM Service Response - " + entry.getValue().getMessage());
-            }
-        }
+        Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponse = retrieveProblemKeysList(problemManagement);
 
         return retrieveProblemKeysListResponse;
     }
@@ -145,25 +139,32 @@ public class HPSMService {
         return hpsmProblemMap;
     }
 
-    public Map<String, RetrieveNEW9330035ProblemKeysListResponse> retrieveProblemKeysList(ProblemManagement problemManagement) {
+    public Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysList(ProblemManagement problemManagement) {
         Map<String, RetrieveNEW9330035ProblemKeysListResponse> retrieveProblemKeysListResponseMap = new HashMap<String, RetrieveNEW9330035ProblemKeysListResponse>();
+        Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> problemKeysListResponseMap = new HashMap<String, List<RetrieveNEW9330035ProblemKeysListResponse>>();
+
+        List<RetrieveNEW9330035ProblemKeysListResponse> problemKeysListResponses = new ArrayList<RetrieveNEW9330035ProblemKeysListResponse>();
 
         if(userService != null && userService.getSelectedProjects() != null && userService.getSelectedProjects().size() > 0) {
             for(Project selectedProject : userService.getSelectedProjects()) {
                 String hpsmServiceName = selectedProject.getProjectName().split(" ")[0];
+                String projectKey = selectedProject.getProjectId() + ":" + hpsmServiceName;
 
                 for(String status : problemStatuses) {
-                    retrieveProblemKeysListResponseMap.put(selectedProject.getProjectId()+":"+hpsmServiceName,  getProblemIdResponse(hpsmServiceName, status, null));
+                    retrieveProblemKeysListResponseMap.put(projectKey, getProblemIdResponse(hpsmServiceName, status, null));
 
                     if(retrieveProblemKeysListResponseMap.size() > 0) {
                         List<String> problems = new ArrayList<String>();
                         for (Map.Entry<String, RetrieveNEW9330035ProblemKeysListResponse> problemKeysListResponseEntry : retrieveProblemKeysListResponseMap.entrySet()) {
                             logger.info("Open Problems for service, " + problemKeysListResponseEntry.getKey() + " - " + problemKeysListResponseEntry.getValue().getKeys().size());
+                            problemKeysListResponses.add(problemKeysListResponseEntry.getValue());
 
                             for(NEW9330035ProblemKeysType problemKeysType : problemKeysListResponseEntry.getValue().getKeys()) {
                                 problems.add(problemKeysType.getID().getValue().getValue());
                             }
                         }
+
+                        problemKeysListResponseMap.put(projectKey, problemKeysListResponses);
 
                         logger.info("Total Open Problems : " + problems.size());
 
@@ -183,8 +184,8 @@ public class HPSMService {
             retrieveProblemKeysListResponseMap.put("Vision.BorderControl:TVIS",  getProblemIdResponse("Vision.BorderControl", "Categorize", 1L));
         }
 
-        logger.info("retrieveProblemKeysListResponseMap : " + retrieveProblemKeysListResponseMap.size());
-        return retrieveProblemKeysListResponseMap;
+        logger.info("retrieveProblemKeysListResponseMap : " + problemKeysListResponseMap.size());
+        return problemKeysListResponseMap;
 
     }
 

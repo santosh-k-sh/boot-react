@@ -107,7 +107,7 @@ public class ConfigurationController {
         try {
             logger.info("calling hpsm..");
 
-            Map<String, RetrieveNEW9330035ProblemKeysListResponse> retrieveProblemKeysListResponse = hpsmService.auth(user.getHpsmUser().getHpsmURL(), user.getHpsmUser().getHpsmUserName(),user.getHpsmUser().getHpsmPassword());
+            Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponse = hpsmService.auth(user.getHpsmUser().getHpsmURL(), user.getHpsmUser().getHpsmUserName(),user.getHpsmUser().getHpsmPassword());
 
             user.getHpsmUser().setAuthenticated(true);
             responseJson.put("AUTHENTICATED", true);
@@ -273,6 +273,9 @@ public class ConfigurationController {
             jiraService.createJIRATicket();
         }*/
 
+        logger.info("Job configure for frequency of " + selectedJobHour + " hrs");
+        logger.info("Selected HPSM Projects to migrate : " + userService.getSelectedProjects());
+
         if(selectedJobHour != null && selectedJobHour.length() > 0) {
             //changeDelay(Long.parseLong(selectedJobHour));
             initiateJob(Long.parseLong(selectedJobHour));
@@ -287,12 +290,14 @@ public class ConfigurationController {
 
     private void loadHPSMProblemToProcess() {
         if(hpsmService.getProblemManagement() != null) {
-            Map<String, RetrieveNEW9330035ProblemKeysListResponse> retrieveProblemKeysListResponseMap = hpsmService.retrieveProblemKeysList(hpsmService.getProblemManagement());
+            Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponseMap = hpsmService.retrieveProblemKeysList(hpsmService.getProblemManagement());
 
             if(retrieveProblemKeysListResponseMap != null) {
-                for (Map.Entry<String, RetrieveNEW9330035ProblemKeysListResponse> retrieveProblemKeysListResponse : retrieveProblemKeysListResponseMap.entrySet()) {
+                for (Map.Entry<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponse : retrieveProblemKeysListResponseMap.entrySet()) {
                     String projectKey = retrieveProblemKeysListResponse.getKey().split(":")[0];
-                    populateHPSMProblem(projectKey, retrieveProblemKeysListResponse.getValue());
+                    for(RetrieveNEW9330035ProblemKeysListResponse problemResponse : retrieveProblemKeysListResponse.getValue()) {
+                        populateHPSMProblem(projectKey, problemResponse);
+                    }
                 }
             }
         }
@@ -309,12 +314,15 @@ public class ConfigurationController {
                 hpsmService != null && hpsmService.getProblemManagementService() != null) {
             hpsmProblemMap.clear();
             hpsmProblemMap = hpsmService.loadHPSMProblemOfNonAvailableJIRAItem(projectKey, retrieveProblemKeysListResponse);
+            logger.info("HPSM Problems for non available JIRA Item : " + hpsmProblemMap);
 
             if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().entrySet().size() > 0) {
                 userService.getProblemToMigrate().putAll(hpsmProblemMap);
             } else if (hpsmProblemMap.size() > 0){
                 userService.setProblemToMigrate(hpsmProblemMap);
             }
+
+            logger.info("Problems to migrate : " + userService.getProblemToMigrate());
         }
     }
 
