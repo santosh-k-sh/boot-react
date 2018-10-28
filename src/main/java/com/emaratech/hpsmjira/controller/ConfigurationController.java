@@ -123,6 +123,7 @@ public class ConfigurationController {
             }
 
         } catch (Exception e) {
+            logger.info("HPSM Exception : " + e.getMessage());
             if(user.getHpsmUser() !=null) {
                 user.getHpsmUser().setAuthenticated(false);
             }

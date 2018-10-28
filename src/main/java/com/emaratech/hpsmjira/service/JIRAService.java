@@ -175,7 +175,7 @@ public class JIRAService {
 
                         logger.info("Trying to create JIRA against Problem - " + hpsmProblem.getProblemNo());
 
-                        /*IssueInput newIssue = new IssueInputBuilder(hpsmProblemDetail.getKey(),
+                        IssueInput newIssue = new IssueInputBuilder(hpsmProblemDetail.getKey(),
                                 problemIssueType.getId(), hpsmProblem.getProblemTitle())
                                 .setDescription(hpsmProblem.getProblemDescription())
                                 .setPriorityId(Long.valueOf(hpsmProblem.getProblemPriority()))
@@ -185,10 +185,10 @@ public class JIRAService {
                                 .setFieldInput(hpsmFieldInput)
                                 //.setFieldInput(environmentFieldInput)
 
-                                .build();*/
+                                .build();
 
                         logger.info("...");
-                        String jiraID = "TVIS-1100";//issueClient.createIssue(newIssue).claim().getKey();
+                        String jiraID = issueClient.createIssue(newIssue).claim().getKey();
                         logger.info("JIRA created succefully." + jiraID + " for problem " + hpsmProblem.getProblemNo());
 
                         newlyCreatedJIRAIds.add(jiraID);

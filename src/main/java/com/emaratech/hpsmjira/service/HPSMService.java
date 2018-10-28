@@ -70,12 +70,14 @@ public class HPSMService {
         if(hpsmURL != null && hpsmURL.length() > 0) {
             hpsmURL = hpsmURL+"/ProblemManagement?wsdl";
             URL url = new URL(hpsmURL);
-            url = new URL("http://localhost:8084/ProblemManagement?wsdl");
+            //url = new URL("http://localhost:8084/ProblemManagement?wsdl");
+            logger.info("HPSM URL : "+hpsmURL);
             problemManagementService = new ProblemManagement_Service(url);
         } else {
             problemManagementService = new ProblemManagement_Service();
         }
 
+        logger.info("Trying to login with "+userName);
         problemManagement = problemManagementService.getProblemManagement();
         Authenticator myAuth = new Authenticator() {
             @Override
@@ -88,6 +90,11 @@ public class HPSMService {
 
         Map<String, RetrieveNEW9330035ProblemKeysListResponse> retrieveProblemKeysListResponse = retrieveProblemKeysList(problemManagement);
 
+        if(retrieveProblemKeysListResponse != null) {
+            for(Map.Entry<String, RetrieveNEW9330035ProblemKeysListResponse> entry:retrieveProblemKeysListResponse.entrySet()) {
+                logger.info("HPSM Service Response - " + entry.getValue().getMessage());
+            }
+        }
 
         return retrieveProblemKeysListResponse;
     }
