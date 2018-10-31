@@ -31,6 +31,7 @@ import static com.emaratech.hpsmjira.utility.HPSMUtility.loadProblemDetails;
 @Service
 public class HPSMService {
     Logger logger = LoggerFactory.getLogger(HPSMService.class);
+    public static final String FAILURE = "FAILURE";
 
     @Autowired
     JIRAService jiraService;
@@ -88,7 +89,7 @@ public class HPSMService {
 
         Authenticator.setDefault(myAuth);
 
-        Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponse = retrieveProblemKeysList(problemManagement);
+        Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponse = retrieveProblemKeysList();
 
         return retrieveProblemKeysListResponse;
     }
@@ -139,7 +140,7 @@ public class HPSMService {
         return hpsmProblemMap;
     }
 
-    public Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysList(ProblemManagement problemManagement) {
+    public Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysList() {
         Map<String, RetrieveNEW9330035ProblemKeysListResponse> retrieveProblemKeysListResponseMap = new HashMap<String, RetrieveNEW9330035ProblemKeysListResponse>();
         Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> problemKeysListResponseMap = new HashMap<String, List<RetrieveNEW9330035ProblemKeysListResponse>>();
 
@@ -155,25 +156,36 @@ public class HPSMService {
 
                     if(retrieveProblemKeysListResponseMap.size() > 0) {
                         List<String> problems = new ArrayList<String>();
+                        String serviceName = "";
                         for (Map.Entry<String, RetrieveNEW9330035ProblemKeysListResponse> problemKeysListResponseEntry : retrieveProblemKeysListResponseMap.entrySet()) {
-                            logger.info("Open Problems for service, " + problemKeysListResponseEntry.getKey() + " - " + problemKeysListResponseEntry.getValue().getKeys().size());
-                            problemKeysListResponses.add(problemKeysListResponseEntry.getValue());
+                            serviceName = problemKeysListResponseEntry.getKey();
+                            if(!problemKeysListResponseEntry.getValue().getStatus().name().equals(FAILURE)) {
+                                problemKeysListResponses.add(problemKeysListResponseEntry.getValue());
+                            }
 
                             for(NEW9330035ProblemKeysType problemKeysType : problemKeysListResponseEntry.getValue().getKeys()) {
-                                problems.add(problemKeysType.getID().getValue().getValue());
+                                if(!problemKeysType.getID().getValue().getValue().equals("")) {
+                                    problems.add(problemKeysType.getID().getValue().getValue());
+                                }
                             }
+
+                            //logger.info("Open Problems for service [" + serviceName + "] - " + problemKeysListResponses.size() + " with status [" + status +"]");
                         }
 
-                        problemKeysListResponseMap.put(projectKey, problemKeysListResponses);
+                        if(problemKeysListResponses.size() > 0) {
+                            problemKeysListResponseMap.put(projectKey, problemKeysListResponses);
+                        }
 
-                        logger.info("Total Open Problems : " + problems.size());
+                        logger.info("Total Open Problems for service ["+ serviceName +"] with Status : [" + status + "] - " + problems.size());
 
-                        for(String problem : problems) {
-                            if(!problemServiceNameMap.entrySet().stream()
-                                    .filter(i -> i.getKey().equals(problem))
-                                    .findFirst()
-                                    .isPresent()) {
-                                problemServiceNameMap.put(problem, false);
+                        if(problems.size() > 0) {
+                            for (String problem : problems) {
+                                if (!problemServiceNameMap.entrySet().stream()
+                                        .filter(i -> i.getKey().equals(problem))
+                                        .findFirst()
+                                        .isPresent()) {
+                                    problemServiceNameMap.put(problem, false);
+                                }
                             }
                         }
                     }
@@ -244,6 +256,17 @@ public class HPSMService {
             logger.info("Clearing closableProblems.");
             closableProblems.clear();
 
+        }
+    }
+
+    public void validateAndCloseProblem() {
+        if(problemServiceNameMap.size() > 0) {
+            for (Map.Entry<String, Boolean> entry : problemServiceNameMap.entrySet()) {
+                if(entry.getValue()) {
+                    jiraService.searchJiraTicket(entry.getKey());
+                    closeProblem();
+                }
+            }
         }
     }
 

@@ -256,33 +256,39 @@ public class ConfigurationController {
 
 
     @RequestMapping(value = "/loadHPSMProblems")
-    public List<HPSMProblem> loadHPSMProblems(@RequestParam String selectedJobHour) {
+    public List<HPSMProblem> loadHPSMProblems(@RequestParam String selectedJobFrequency, @RequestParam String scheduledType) {
         List<HPSMProblem> hpsmProblems = new ArrayList<HPSMProblem>();
-        /*loadHPSMProblemToProcess();
-
-        if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().entrySet().size() > 0) {
-            for(Map.Entry<String, HPSMProblem> hpsmProblemEntry : userService.getProblemToMigrate().entrySet()) {
-                hpsmProblems.add(hpsmProblemEntry.getValue());
-            }
-        }*/
-
-        /*loadHPSMProblemToProcess();
-
-        if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().size() > 0) {
-            logger.info("Problems to migrate : " + userService.getProblemToMigrate().entrySet().size());
-            jiraService.createJIRATicket();
-        }*/
-
-        logger.info("Job configure for frequency of " + selectedJobHour + " hrs");
+        logger.info("Job configure for frequency of " + selectedJobFrequency + scheduledType);
         logger.info("Selected HPSM Projects to migrate : " + userService.getSelectedProjects());
 
-        if(selectedJobHour != null && selectedJobHour.length() > 0) {
-            //changeDelay(Long.parseLong(selectedJobHour));
-            initiateJob(Long.parseLong(selectedJobHour));
+        if(selectedJobFrequency != null && selectedJobFrequency.length() > 0) {
+            TimeUnit timeUnit = TimeUnit.HOURS;
+            if(scheduledType.equalsIgnoreCase("M")) {
+                timeUnit = TimeUnit.MINUTES;
+            }
+
+            initiateJob(Long.parseLong(selectedJobFrequency), timeUnit);
         }
 
-        if(hpsmService.getNonAvailableHPSMProblemInJIRA() != null && hpsmService.getNonAvailableHPSMProblemInJIRA().size() > 0) {
-            hpsmService.saveHPSMProblem(hpsmService.getNonAvailableHPSMProblemInJIRA());
+        return hpsmProblems;
+    }
+
+    @RequestMapping(value = "/updateSchedule")
+    public List<HPSMProblem> updateSchedule(@RequestParam String selectedJobFrequency, @RequestParam String scheduledType) {
+        List<HPSMProblem> hpsmProblems = new ArrayList<HPSMProblem>();
+
+        logger.info("Schedule updated as " + selectedJobFrequency + scheduledType);
+        logger.info("Selected HPSM Projects to migrate : " + userService.getSelectedProjects());
+
+        if(selectedJobFrequency != null && selectedJobFrequency.length() > 0) {
+            TimeUnit timeUnit = TimeUnit.HOURS;
+            if(scheduledType.equalsIgnoreCase("M")) {
+                timeUnit = TimeUnit.MINUTES;
+            }
+
+            changeDelay(Long.parseLong(selectedJobFrequency), timeUnit);
+
+            //initiateJob(Long.parseLong(selectedJobFrequency), timeUnit);
         }
 
         return hpsmProblems;
@@ -290,7 +296,7 @@ public class ConfigurationController {
 
     private void loadHPSMProblemToProcess() {
         if(hpsmService.getProblemManagement() != null) {
-            Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponseMap = hpsmService.retrieveProblemKeysList(hpsmService.getProblemManagement());
+            Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponseMap = hpsmService.retrieveProblemKeysList();
 
             if(retrieveProblemKeysListResponseMap != null) {
                 for (Map.Entry<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponse : retrieveProblemKeysListResponseMap.entrySet()) {
@@ -314,7 +320,7 @@ public class ConfigurationController {
                 hpsmService != null && hpsmService.getProblemManagementService() != null) {
             hpsmProblemMap.clear();
             hpsmProblemMap = hpsmService.loadHPSMProblemOfNonAvailableJIRAItem(projectKey, retrieveProblemKeysListResponse);
-            logger.info("HPSM Problems for non available JIRA Item : " + hpsmProblemMap);
+            logger.debug("HPSM Problems for non available JIRA Item : " + hpsmProblemMap);
 
             if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().entrySet().size() > 0) {
                 userService.getProblemToMigrate().putAll(hpsmProblemMap);
@@ -322,21 +328,34 @@ public class ConfigurationController {
                 userService.setProblemToMigrate(hpsmProblemMap);
             }
 
-            logger.info("Problems to migrate : " + userService.getProblemToMigrate());
+            logger.info("HPSM problem to migrate into JIRA against project key ["+projectKey+"] : "+ userService.getProblemToMigrate());
         }
     }
 
-    public void initiateJob(long scheduleHourlyDelay) {
+    public void initiateJob(long scheduleHourlyDelay, TimeUnit timeUnit) {
         executor = Executors.newScheduledThreadPool(1);
         runnable = new Runnable() {
             @Override
             public void run() {
-                logger.info("Job initiated at..."+ new Date());
+                logger.info("============================== JOB INITIATED ==============================");
+                logger.info("====================== " +new Date()+ " =======================");
                 if(userService.getUser().isUserAuthenticated()) {
                     loadHPSMProblemToProcess();
                 }
 
-                if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().size() > 0) {
+                boolean problemNeedsToMigrate = false;
+                if(userService.getProblemToMigrate() != null) {
+                    for (Map.Entry<String, List<HPSMProblem>> hpsmProblemDetail : userService.getProblemToMigrate().entrySet()) {
+                        if (hpsmProblemDetail.getValue().size() > 0) {
+                            problemNeedsToMigrate = true;
+                            break;
+                        }
+                    }
+                }
+
+                logger.info("Problem available to migrate : "+ problemNeedsToMigrate);
+
+                if(problemNeedsToMigrate && userService.getProblemToMigrate() != null && userService.getProblemToMigrate().size() > 0) {
                     logger.info("============================================================================");
                     logger.info("Problems to migrate : " + userService.getProblemToMigrate().entrySet().size());
                     jiraService.createJIRATicket();
@@ -345,6 +364,9 @@ public class ConfigurationController {
                 // Close Problems
                 if(hpsmService.getClosableProblems() != null && hpsmService.getClosableProblems().size() > 0) {
                     hpsmService.closeProblem();
+                } else if (hpsmService.getClosableProblems() != null && hpsmService.getClosableProblems().size() == 0) {
+                    logger.info("Searching for closable problem list");
+                    hpsmService.validateAndCloseProblem();
                 }
 
                 if(hpsmService.getNonAvailableHPSMProblemInJIRA() != null && hpsmService.getNonAvailableHPSMProblemInJIRA().size() > 0) {
@@ -353,9 +375,12 @@ public class ConfigurationController {
                     hpsmService.getNonAvailableHPSMProblemInJIRA().clear();
                 }
 
+                logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ JOB CYCLE COMPLETED ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+                logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~ " +new Date()+ " ~~~~~~~~~~~~~~~~~~~~~~~~~~");
+
             }
         };
-        future = executor.scheduleWithFixedDelay(runnable, scheduleHourlyDelay, scheduleHourlyDelay, TimeUnit.HOURS);
+        future = executor.scheduleWithFixedDelay(runnable, 0, scheduleHourlyDelay, timeUnit);
 
         try {
             Thread.sleep(20000l);
@@ -364,11 +389,11 @@ public class ConfigurationController {
         }
     }
 
-    public void changeDelay(long scheduleHourlyDelay) {
+    public void changeDelay(long scheduleHourlyDelay, TimeUnit timeUnit) {
         boolean res = future.cancel(false);
         logger.info("Previous task canceled: " + res);
 
-        future = executor.scheduleWithFixedDelay(runnable, 0, scheduleHourlyDelay, TimeUnit.HOURS);
+        future = executor.scheduleWithFixedDelay(runnable, 0, scheduleHourlyDelay, timeUnit);
     }
 
     @RequestMapping(value = "/processedProblems")

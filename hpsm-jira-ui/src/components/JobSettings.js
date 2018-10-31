@@ -57,7 +57,8 @@ class JobSettings extends Component {
             selectedJIRAProjectId: '',
             selectedProjectIndexToRemove: '',
             configLoader: true,
-            selectedJobHour: '',
+            selectedJobFrequency: '',
+            scheduledType: '',
 
 
             selectedHpsmJiraProjectMappings: [],
@@ -112,12 +113,23 @@ class JobSettings extends Component {
     loadHPSMProblems = (e)  => {
         e.preventDefault();
         this.setState({configLoader: false});
-        axios.get('/loadHPSMProblems/?selectedJobHour='+this.state.selectedJobHour)
+        axios.get('/loadHPSMProblems/?selectedJobFrequency='+this.state.selectedJobFrequency+'&scheduledType='+this.state.scheduledType)
             .then(response => {
                 console.log('response returned...' + response.data);
                 this.setState({problemsToMigrate: response.data, configLoader: true});
                 this.props.updateProblemLists(this.state.problemsToMigrate);
         });
+    };
+
+    updateSchedule = (e)  => {
+        e.preventDefault();
+        this.setState({configLoader: false});
+        axios.get('/updateSchedule/?selectedJobFrequency='+this.state.selectedJobFrequency+'&scheduledType='+this.state.scheduledType)
+            .then(response => {
+                console.log('response returned...' + response.data);
+                this.setState({problemsToMigrate: response.data, configLoader: true});
+                this.props.updateProblemLists(this.state.problemsToMigrate);
+            });
     };
 
     render() {
@@ -202,20 +214,32 @@ class JobSettings extends Component {
 
                 <div className="row" style={{marginTop : '15px'}}>
                     <FormGroup>
-                        <InputGroup>
-                            <InputGroup.Addon>Schedule Type</InputGroup.Addon>
-                            <FormControl type="text" placeholder="Hourly" onChange={ e => this.setState({selectedJobHour: e.target.value})} />
-                        </InputGroup>
+                        <ControlLabel>Schedule Type</ControlLabel>
+                        <Radio name="radioGroup" inline onChange={ e => this.setState({scheduledType: e.target.value})} value="H" style={{paddingLeft: '30px'}}>Hourly</Radio>
+                        <Radio name="radioGroup" inline onChange={ e => this.setState({scheduledType: e.target.value})} value="M">Minute</Radio>
                     </FormGroup>
 
-                </div>
-
-                <div className="row">
-                    <div className="col-lg-6">
-                        <FormGroup controlid="saveConfiguration">
-                            <Button type="submit" bsStyle="primary" onClick={e => this.loadHPSMProblems(e)}>Setup</Button>
+                    { this.state.scheduledType === 'M' ?
+                        <FormGroup>
+                            <InputGroup>
+                                <InputGroup.Addon>Schedule Type</InputGroup.Addon>
+                                <FormControl type="text" placeholder="Minute" style={{width: '130px'}} onChange={ e => this.setState({selectedJobFrequency: e.target.value})} />
+                            </InputGroup>
                         </FormGroup>
-                    </div>
+                        :
+                        this.state.scheduledType === 'H' ?
+                            <FormGroup>
+                                <InputGroup>
+                                    <InputGroup.Addon>Schedule Type</InputGroup.Addon>
+                                    <FormControl type="text" placeholder="Hourly" style={{width: '130px'}} onChange={ e => this.setState({selectedJobFrequency: e.target.value})} />
+                                </InputGroup>
+                            </FormGroup> : null
+                    }
+
+                    <FormGroup controlid="saveConfiguration">
+                        <Button type="submit" bsStyle="primary" onClick={e => this.loadHPSMProblems(e)}>Start</Button>
+                        <Button type="submit" bsStyle="info" onClick={e => this.updateSchedule(e)} style={{marginLeft:'5px'}}>Update Schedule</Button>
+                    </FormGroup>
                 </div>
                 <Loader loaded={this.state.configLoader}/>
 

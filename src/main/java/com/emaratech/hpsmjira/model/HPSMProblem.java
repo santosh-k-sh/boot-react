@@ -11,11 +11,10 @@ import javax.persistence.*;
 public class HPSMProblem {
     @Id
     @Column(name = "PROBLEM_ID")
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long problemId;
     @Column(name = "PROBLEM_NO")
     private String problemNo;
-    @Column(name = "PROBLEM_DESC")
+    @Column(name = "PROBLEM_DESC", length = 5000)
     private String problemDescription;
     @Column(name = "PROBLEM_ASSIGNEE")
     private String problemAssignee;

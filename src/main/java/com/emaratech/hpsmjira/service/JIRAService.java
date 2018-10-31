@@ -68,7 +68,7 @@ public class JIRAService {
         List<JIRAIssue> jiraIssues = new ArrayList<JIRAIssue>();
 
         if(restClient != null) {
-            logger.info("Searching in JIRA for Problem No : " + problemNo);
+            logger.debug("Searching in JIRA for Problem No : " + problemNo);
             Promise<SearchResult> searchJqlPromise = restClient.getSearchClient().searchJql(searchJqlText.toString());
 
             if(searchJqlPromise != null && ((Collection) searchJqlPromise.claim().getIssues()).size()  > 0) {
@@ -76,7 +76,7 @@ public class JIRAService {
                 String jiraID = "";
                 StringBuffer fixVersions = new StringBuffer();
 
-                logger.info("Problem No : " + problemNo + " found in JIRA");
+                logger.debug("Problem No : " + problemNo + " found in JIRA");
                 for (Issue resultIssue : searchJqlPromise.claim().getIssues()) {
                     JIRAIssue jiraIssue = new JIRAIssue();
                     jiraIssue.setIssueKey(resultIssue.getKey());

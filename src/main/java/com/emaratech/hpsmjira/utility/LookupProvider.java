@@ -26,6 +26,7 @@ public class LookupProvider {
     public static final String TMBL = "TMBL";
     public static final String TNGE = "TNGE";
     public static final String TNOQ = "TNOQ";
+    public static final String TNOQRL = "TNOQRL";
     public static final String TUXD = "TUXD";
     public static final String VFIS = "VFIS";
 
@@ -74,6 +75,10 @@ public class LookupProvider {
         tnoqProjects.add(new JIRAProject(TNOQ, "Noqodi (Legacy)"));
         jiraProjectMap.put(TNOQ, tnoqProjects);
 
+        List<JIRAProject> tnoqRevamp = new ArrayList<JIRAProject>();
+        visProjects.add(new JIRAProject(TNOQRL, "Noqodi (Revamp)"));
+        jiraProjectMap.put(TNOQRL, tnoqRevamp);
+
         List<JIRAProject> teapProjects = new ArrayList<JIRAProject>();
         teapProjects.add(new JIRAProject(TEAP, "EAP"));
         jiraProjectMap.put(TEAP, teapProjects);
@@ -113,7 +118,7 @@ public class LookupProvider {
         hpsmProjectMap.put(TVIS, tvisProjects);
 
         List<HPSMProject> taraProjects = new ArrayList<HPSMProject>();
-        taraProjects.add(new HPSMProject(TARA, "TARA"));
+        taraProjects.add(new HPSMProject("ARA", "ARA"));
         hpsmProjectMap.put(TARA, taraProjects);
 
         List<HPSMProject> teapProjects = new ArrayList<HPSMProject>();
@@ -142,6 +147,7 @@ public class LookupProvider {
         tgatesProjects.add(new HPSMProject(TGATES, "Vision.FDGate"));
         tgatesProjects.add(new HPSMProject(TGATES, "Vision.NextGenerationSmartGates"));
         tgatesProjects.add(new HPSMProject(TGATES, "Vision.SmartGate"));
+        tgatesProjects.add(new HPSMProject(TGATES, "Vision.SmartCorridor"));
         hpsmProjectMap.put(TGATES, tgatesProjects);
 
         List<HPSMProject> tiqcProjects = new ArrayList<HPSMProject>();
