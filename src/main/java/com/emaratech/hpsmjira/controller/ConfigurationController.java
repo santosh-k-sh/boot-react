@@ -102,10 +102,12 @@ public class ConfigurationController {
 
         if(userService.getUser() != null) {
             userService.getUser().setHpsmUser(hpsmUser);
+        } else if(userService.getUser() == null) {
+            userService.setUser(user);
         }
 
         try {
-            logger.info("calling hpsm..");
+            logger.debug("calling hpsm..");
 
             Map<String, List<RetrieveNEW9330035ProblemKeysListResponse>> retrieveProblemKeysListResponse = hpsmService.auth(user.getHpsmUser().getHpsmURL(), user.getHpsmUser().getHpsmUserName(),user.getHpsmUser().getHpsmPassword());
 
@@ -113,8 +115,6 @@ public class ConfigurationController {
             responseJson.put("AUTHENTICATED", true);
 
             AuthCacheValue.setAuthCache(new AuthCacheImpl());
-
-            userService.setUser(user);
 
             if(userService.getUser().getHpsmUser() != null && userService.getUser().getHpsmUser().isAuthenticated() &&
                     userService.getUser().getJiraUser() != null && userService.getUser().getJiraUser().isAuthenticated()) {
@@ -124,7 +124,7 @@ public class ConfigurationController {
 
         } catch (Exception e) {
             logger.info("HPSM Exception : " + e.getMessage());
-            if(user.getHpsmUser() !=null) {
+            if(user.getHpsmUser() != null) {
                 user.getHpsmUser().setAuthenticated(false);
             }
             if(userService.getUser() != null) {
@@ -140,8 +140,13 @@ public class ConfigurationController {
             userService.getUser().setHpsmUser(user.getHpsmUser());
         }
 
-        logger.info("User Authenticated : "+user.getHpsmUser().isAuthenticated());
-        return user.getHpsmUser().isAuthenticated();
+        if(userService.getUser().getHpsmUser() != null && userService.getUser().getHpsmUser().isAuthenticated() &&
+                userService.getUser().getJiraUser() != null && userService.getUser().getJiraUser().isAuthenticated()) {
+            userService.getUser().setUserAuthenticated(true);
+        }
+
+        logger.info("HPSM User Authenticated : "+user.getHpsmUser().isAuthenticated());
+        return userService.getUser().getHpsmUser().isAuthenticated();
     }
 
 
@@ -176,7 +181,6 @@ public class ConfigurationController {
 
         if(userService.getUser().getHpsmUser() != null && userService.getUser().getHpsmUser().isAuthenticated() &&
                 userService.getUser().getJiraUser() != null && userService.getUser().getJiraUser().isAuthenticated()) {
-            userService.getUser().setUserAuthenticated(true);
             userService.getUser().setUserAuthenticated(true);
         }
 

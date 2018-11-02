@@ -196,7 +196,7 @@ public class HPSMService {
             retrieveProblemKeysListResponseMap.put("Vision.BorderControl:TVIS",  getProblemIdResponse("Vision.BorderControl", "Categorize", 1L));
         }
 
-        logger.info("retrieveProblemKeysListResponseMap : " + problemKeysListResponseMap.size());
+        logger.debug("retrieveProblemKeysListResponseMap : " + problemKeysListResponseMap.size());
         return problemKeysListResponseMap;
 
     }
@@ -225,6 +225,8 @@ public class HPSMService {
         if(closableProblems != null && closableProblems.size() > 0) {
             logger.info("closableProblems : "+closableProblems);
 
+            List<String> closedProblemList = new ArrayList<String>();
+
             for(ClosableProblem closableProblem : closableProblems) {
                 logger.info("Closing Problem No. "+closableProblem.getHpsmProblemId());
 
@@ -251,8 +253,17 @@ public class HPSMService {
                 closeNEW9330035ProblemRequest.setModel(new9330035ProblemModelType);
 
                 problemManagement.closeNEW9330035Problem(closeNEW9330035ProblemRequest);
+
+                closedProblemList.add(closableProblem.getHpsmProblemId());
             }
 
+            if(closedProblemList.size() > 0) {
+                for (String problemNo : closedProblemList) {
+                    if(problemServiceNameMap.get(problemNo)) {
+                        problemServiceNameMap.remove(problemNo);
+                    }
+                }
+            }
             logger.info("Clearing closableProblems.");
             closableProblems.clear();
 

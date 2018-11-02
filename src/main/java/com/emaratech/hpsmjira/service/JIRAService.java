@@ -51,6 +51,7 @@ public class JIRAService {
     }
 
     private JiraRestClient authenticate() {
+        logger.info("JIRA URL :" + jira.getJiraURL());
         restClient = new AsynchronousJiraRestClientFactory()
                 .createWithBasicHttpAuthentication(URI.create(jira.getJiraURL()), jira.getJiraUserName(), jira.getJiraPassword());
 
