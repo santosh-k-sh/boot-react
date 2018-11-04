@@ -69,7 +69,7 @@ public class LookupProvider {
 
         List<JIRAProject> tmblProjects = new ArrayList<JIRAProject>();
         tmblProjects.add(new JIRAProject(TMBL, "Mobile"));
-        jiraProjectMap.put(TEFRM, tmblProjects);
+        jiraProjectMap.put(TMBL, tmblProjects);
 
         List<JIRAProject> tnoqProjects = new ArrayList<JIRAProject>();
         tnoqProjects.add(new JIRAProject(TNOQ, "Noqodi (Legacy)"));
