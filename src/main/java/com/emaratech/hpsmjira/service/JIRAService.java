@@ -193,6 +193,7 @@ public class JIRAService {
                         logger.info("JIRA created succefully." + jiraID + " for problem " + hpsmProblem.getProblemNo());
 
                         newlyCreatedJIRAIds.add(jiraID);
+                        hpsmProblem.setCorrespondingJIRAId(jiraID);
 
                         newlyCreatedProblemList.add(hpsmProblem);
                     }

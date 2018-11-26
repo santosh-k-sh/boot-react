@@ -327,7 +327,9 @@ public class ConfigurationController {
             logger.debug("HPSM Problems for non available JIRA Item : " + hpsmProblemMap);
 
             if(userService.getProblemToMigrate() != null && userService.getProblemToMigrate().entrySet().size() > 0) {
-                userService.getProblemToMigrate().putAll(hpsmProblemMap);
+                if(hpsmProblemMap.size() > 0) {
+                    userService.getProblemToMigrate().putAll(hpsmProblemMap);
+                }
             } else if (hpsmProblemMap.size() > 0){
                 userService.setProblemToMigrate(hpsmProblemMap);
             }
@@ -363,6 +365,8 @@ public class ConfigurationController {
                     logger.info("============================================================================");
                     logger.info("Problems to migrate : " + userService.getProblemToMigrate().entrySet().size());
                     jiraService.createJIRATicket();
+
+                    userService.getProblemToMigrate().clear();
                 }
 
                 // Close Problems

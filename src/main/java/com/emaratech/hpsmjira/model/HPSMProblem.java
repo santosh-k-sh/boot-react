@@ -36,6 +36,8 @@ public class HPSMProblem {
     private String incidentCount;
     @Column(name = "PROBLEM_KEY")
     private String projectKey;
+    @Column(name = "JIRA_ID")
+    private String correspondingJIRAId;
 
 
     public String getProblemNo() {
@@ -140,5 +142,24 @@ public class HPSMProblem {
 
     public void setProblemId(Long problemId) {
         this.problemId = problemId;
+    }
+
+    public String getCorrespondingJIRAId() {
+        return correspondingJIRAId;
+    }
+
+    public void setCorrespondingJIRAId(String correspondingJIRAId) {
+        this.correspondingJIRAId = correspondingJIRAId;
+    }
+
+    @Override
+    public String toString() {
+        return "HPSMProblem{" +
+                "problemNo='" + problemNo + '\'' +
+                ", problemTitle='" + problemTitle + '\'' +
+                ", problemStatus='" + problemStatus + '\'' +
+                ", projectKey='" + projectKey + '\'' +
+                ", correspondingJIRAId='" + correspondingJIRAId + '\'' +
+                '}';
     }
 }

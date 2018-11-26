@@ -23,6 +23,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.emaratech.hpsmjira.utility.HPSMUtility.loadProblemDetail;
 import static com.emaratech.hpsmjira.utility.HPSMUtility.loadProblemDetails;
 
 /**
@@ -130,7 +131,7 @@ public class HPSMService {
 
                     /*Checks if the HPSM Problem already exists in JIRA */
                     if(!alreadyExistsInJIRA && jiraService.searchJiraTicket(problemNo).size() == 0) {
-                        hpsmProblemsNotAvailableInJIRA.add(loadProblemDetails(problemManagement, problemNo));
+                        hpsmProblemsNotAvailableInJIRA.add(loadProblemDetail(problemManagement, problemNo));
                         hpsmProblemMap.put(projectKey, hpsmProblemsNotAvailableInJIRA);
                     }
                 }

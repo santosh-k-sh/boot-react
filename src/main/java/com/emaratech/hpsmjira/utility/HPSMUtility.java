@@ -4,6 +4,7 @@ import com.emaratech.hp.schemas.sm._7.*;
 import com.emaratech.hp.schemas.sm._7.common.DateTimeType;
 import com.emaratech.hp.schemas.sm._7.common.StringType;
 import com.emaratech.hpsmjira.model.HPSMProblem;
+import org.hibernate.boot.jaxb.SourceType;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
@@ -20,7 +21,29 @@ import java.util.regex.Pattern;
  * Created by Santosh.Sharma on 9/26/2018.
  */
 public class HPSMUtility {
+
+    public static HPSMProblem loadProblemDetail(ProblemManagement problemManagement, String problemNo) {
+        RetrieveNEW9330035ProblemRequest retrieveNEW9330035ProblemKeysListRequest = new RetrieveNEW9330035ProblemRequest();
+        NEW9330035ProblemModelType modelType = new NEW9330035ProblemModelType();
+        NEW9330035ProblemKeysType keysType = new NEW9330035ProblemKeysType();
+        JAXBElement<StringType> id = setProblemKeysType(problemNo);
+        keysType.setID(id);
+        modelType.setKeys(keysType);
+
+        NEW9330035ProblemInstanceType new9330035ProblemInstanceType = new NEW9330035ProblemInstanceType();
+        modelType.setInstance(new9330035ProblemInstanceType);
+        retrieveNEW9330035ProblemKeysListRequest.setModel(modelType);
+        RetrieveNEW9330035ProblemResponse retrieveNEW9330035ProblemResponse = problemManagement.retrieveNEW9330035Problem(retrieveNEW9330035ProblemKeysListRequest);
+
+        NEW9330035ProblemInstanceType instanceType = retrieveNEW9330035ProblemResponse.getModel().getInstance();
+
+        HPSMProblem hpsmProblem = prepareProblemData(instanceType);
+
+        return hpsmProblem;
+    }
+
     public static HPSMProblem loadProblemDetails(ProblemManagement problemManagement, String problemNo) {
+        System.out.println("Loading problem "+ problemNo);
         RetrieveProblemRequest retrieveProblemRequest = new RetrieveProblemRequest();
         ProblemModelType model = new ProblemModelType();
         ProblemKeysType key = new ProblemKeysType();
@@ -48,6 +71,50 @@ public class HPSMUtility {
     }
 
     private static HPSMProblem prepareHPSMProblemData(ProblemInstanceType problemInstanceType) {
+        HPSMProblem hpsmProblem = new HPSMProblem();
+        StringBuffer description = new StringBuffer();
+
+        for(StringType descType : problemInstanceType.getDescription().getDescription()) {
+            description.append(descType.getValue()+"\n");
+        }
+
+        StringBuffer problemId = new StringBuffer();
+        Pattern p = Pattern.compile("-?\\d+");
+        Matcher m = p.matcher(problemInstanceType.getID().getValue().getValue());
+        while (m.find()) {
+            problemId.append(m.group());
+        }
+        hpsmProblem.setProblemId(Long.parseLong(problemId.toString()));
+        hpsmProblem.setProblemNo(problemInstanceType.getID().getValue().getValue());
+        hpsmProblem.setProblemDescription(description.toString());
+        hpsmProblem.setProblemTitle(problemInstanceType.getTitle().getValue().getValue());
+        hpsmProblem.setProblemStatus(problemInstanceType.getStatus().getValue().getValue());
+        if(problemInstanceType.getAssignee() != null) {
+            hpsmProblem.setProblemAssignee(problemInstanceType.getAssignee().getValue().getValue());
+        }
+        if(problemInstanceType.getPriority() != null) {
+            hpsmProblem.setProblemPriority(problemInstanceType.getPriority().getValue().getValue());
+        }
+        if(problemInstanceType.getUrgency() != null) {
+            hpsmProblem.setProblemUrgency(problemInstanceType.getUrgency().getValue().getValue());
+        }
+        if(problemInstanceType.getIncidentCount() != null) {
+            hpsmProblem.setIncidentCount(String.valueOf(problemInstanceType.getIncidentCount().getValue().getValue()));
+        }
+        if(problemInstanceType.getImpact() != null) {
+            hpsmProblem.setImpact(problemInstanceType.getImpact().getValue().getValue());
+        }
+        if(problemInstanceType.getSubCategory() != null) {
+            hpsmProblem.setSubCategory(problemInstanceType.getSubCategory().getValue().getValue());
+        }
+        if(problemInstanceType.getProblemType() != null) {
+            hpsmProblem.setProjectKey(problemInstanceType.getProblemType().getValue().getValue());
+        }
+
+        return hpsmProblem;
+    }
+
+    private static HPSMProblem prepareProblemData(NEW9330035ProblemInstanceType problemInstanceType) {
         HPSMProblem hpsmProblem = new HPSMProblem();
         StringBuffer description = new StringBuffer();
 
@@ -203,6 +270,14 @@ public class HPSMUtility {
         return status;
     }
 
+    public static JAXBElement<StringType> setProblemKeysType(String value) {
+        ObjectFactory factory = new ObjectFactory();
+        StringType stringType = new StringType();
+        stringType.setValue(value);
+        JAXBElement<StringType> problemKeysTypeID = factory.createNEW9330035ProblemKeysTypeID(stringType);
+
+        return problemKeysTypeID;
+    }
 
 
 }
