@@ -29,6 +29,7 @@ public class LookupProvider {
     public static final String TNOQRL = "TNOQRL";
     public static final String TUXD = "TUXD";
     public static final String VFIS = "VFIS";
+    public static final String SMART_CHANNEL = "SC";
 
     private List<JIRAProject> jiraProjects;
     private List<HPSMProject> hpsmProjects;
@@ -90,6 +91,10 @@ public class LookupProvider {
         List<JIRAProject> tngeProjects = new ArrayList<JIRAProject>();
         tngeProjects.add(new JIRAProject(TNGE, "NGE"));
         jiraProjectMap.put(TNGE, tngeProjects);
+
+        List<JIRAProject> smartChannelProjects = new ArrayList<JIRAProject>();
+        smartChannelProjects.add(new JIRAProject(SMART_CHANNEL, "Smart Channel"));
+        jiraProjectMap.put(SMART_CHANNEL, smartChannelProjects);
 
         for(Map.Entry<String, List<JIRAProject>> projectEntrySet : jiraProjectMap.entrySet()) {
             jiraProjects.addAll(projectEntrySet.getValue());
@@ -176,6 +181,10 @@ public class LookupProvider {
         List<HPSMProject> vfisProjects = new ArrayList<HPSMProject>();
         vfisProjects.add(new HPSMProject(VFIS, "FIS.Backend"));
         hpsmProjectMap.put(VFIS, vfisProjects);
+
+        List<HPSMProject> smartChannelProjects = new ArrayList<HPSMProject>();
+        smartChannelProjects.add(new HPSMProject(SMART_CHANNEL, "Smart Channels"));
+        hpsmProjectMap.put(SMART_CHANNEL, smartChannelProjects);
 
         for(Map.Entry<String, List<HPSMProject>> projectEntrySet : hpsmProjectMap.entrySet()) {
             hpsmProjects.addAll(projectEntrySet.getValue());
